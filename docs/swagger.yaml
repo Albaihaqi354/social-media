@@ -61,7 +61,6 @@ definitions:
       success:
         type: boolean
     type: object
-host: localhost:5051
 info:
   contact: {}
   description: Back End using go with gin.

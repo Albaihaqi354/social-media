@@ -15,6 +15,7 @@ func CORSMiddleware(c *gin.Context) {
 	whiteListOrigin := []string{
 		"http://localhost:5051",
 		"http://127.0.0.1:5051",
+		"http://192.168.50.121:8080",
 	}
 	origin := c.GetHeader("Origin")
 

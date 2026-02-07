@@ -13,7 +13,6 @@ import (
 // @title           Media Sodial Application
 // @version         1.0
 // @description     Back End using go with gin.
-// @host      		localhost:5051
 // @BasePath 		/
 
 // @securityDefinitions.apikey BearerAuth
