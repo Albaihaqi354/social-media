@@ -1,0 +1,149 @@
+package controller
+
+import (
+	"net/http"
+	"strings"
+
+	"github.com/Albaihaqi354/FinalPhase3.git/internal/dto"
+	"github.com/Albaihaqi354/FinalPhase3.git/internal/service"
+	"github.com/gin-gonic/gin"
+)
+
+type AuthController struct {
+	authService *service.AuthService
+}
+
+func NewAuthController(authService *service.AuthService) *AuthController {
+	return &AuthController{
+		authService: authService,
+	}
+}
+
+// Register godoc
+// @Summary      Register a new user
+// @Description  Create a new user account
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        user  body      dto.RegisterRequest  true  "User Registration Body"
+// @Success      201   {object}  dto.Response{data=dto.RegisterResponse}
+// @Failure      400   {object}  dto.Response
+// @Failure      500   {object}  dto.Response
+// @Router       /auth/register [post]
+func (a AuthController) Register(c *gin.Context) {
+	var newUser dto.RegisterRequest
+	if err := c.ShouldBindJSON(&newUser); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Msg:     "Bad Request",
+			Success: false,
+			Error:   "Invalid Request Body",
+			Data:    []any{},
+		})
+		return
+	}
+	data, err := a.authService.Register(c.Request.Context(), newUser)
+	if err != nil {
+		if strings.Contains(err.Error(), "duplicate Key Value") {
+			c.JSON(http.StatusBadRequest, dto.Response{
+				Msg:     "Bad Request",
+				Success: false,
+				Error:   "Email Already in use",
+			})
+			return
+		}
+
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Msg:     "Internal Server Error",
+			Success: false,
+			Error:   "Internal Server Error",
+			Data:    []any{},
+		})
+		return
+	}
+
+	c.JSON(http.StatusCreated, dto.Response{
+		Msg:     "Created User, Success",
+		Success: true,
+		Data:    []any{data},
+	})
+}
+
+// Login godoc
+// @Summary      User login
+// @Description  Authenticate user and return JWT token
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Param        credentials  body      dto.LoginRequest  true  "Login Credentials"
+// @Success      200          {object}  dto.Response{data=dto.LoginResponse}
+// @Failure      400          {object}  dto.Response
+// @Failure      401          {object}  dto.Response
+// @Router       /auth/login [post]
+func (a AuthController) Login(c *gin.Context) {
+	var loginReq dto.LoginRequest
+	if err := c.ShouldBindJSON(&loginReq); err != nil {
+		c.JSON(http.StatusBadRequest, dto.Response{
+			Msg:     "Bad Request",
+			Success: false,
+			Error:   "Invalid Request Body",
+			Data:    []any{},
+		})
+		return
+	}
+
+	data, err := a.authService.Login(c.Request.Context(), loginReq)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, dto.Response{
+			Msg:     "Unauthorized",
+			Success: false,
+			Error:   err.Error(),
+			Data:    []any{},
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Msg:     "Login Success",
+		Success: true,
+		Data:    []any{data},
+	})
+}
+
+// Logout godoc
+// @Summary      User logout
+// @Description  Invalidate JWT token by removing it from whitelist
+// @Tags         auth
+// @Accept       json
+// @Produce      json
+// @Security     BearerAuth
+// @Success      200  {object}  dto.Response
+// @Failure      401  {object}  dto.Response
+// @Router       /auth/logout [delete]
+func (a AuthController) Logout(c *gin.Context) {
+	bearerToken := c.GetHeader("Authorization")
+	parts := strings.Split(bearerToken, " ")
+	if len(parts) < 2 {
+		c.JSON(http.StatusUnauthorized, dto.Response{
+			Msg:     "Unauthorized",
+			Success: false,
+			Error:   "Invalid Token Format",
+		})
+		return
+	}
+	token := parts[1]
+
+	err := a.authService.Logout(c.Request.Context(), token)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, dto.Response{
+			Msg:     "Internal Server Error",
+			Success: false,
+			Error:   err.Error(),
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, dto.Response{
+		Msg:     "Logout Success",
+		Success: true,
+	})
+}
