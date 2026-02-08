@@ -36,8 +36,8 @@ func (a AuthRepository) CreateNewUser(ctx context.Context, newUser dto.RegisterR
 		return model.Account{}, err
 	}
 
-	sqlUser := "INSERT INTO users (account_id, name) VALUES ($1, $2)"
-	_, err = tx.Exec(ctx, sqlUser, user.Id, user.Email)
+	sqlUser := "INSERT INTO users (account_id, name) VALUES ($1, $2) RETURNING id"
+	err = tx.QueryRow(ctx, sqlUser, user.Id, user.Email).Scan(&user.Id)
 	if err != nil {
 		return model.Account{}, err
 	}
@@ -50,7 +50,10 @@ func (a AuthRepository) CreateNewUser(ctx context.Context, newUser dto.RegisterR
 }
 
 func (a AuthRepository) FindUserByEmail(ctx context.Context, email string) (model.Account, error) {
-	sql := "SELECT id, email, password FROM accounts WHERE email = $1"
+	sql := `SELECT u.id, a.email, a.password 
+			FROM accounts a 
+			JOIN users u ON a.id = u.account_id 
+			WHERE a.email = $1`
 
 	var user model.Account
 	if err := a.db.QueryRow(ctx, sql, email).Scan(&user.Id, &user.Email, &user.Password); err != nil {

@@ -14,4 +14,6 @@ func Init(app *gin.Engine, db *pgxpool.Pool, rdb *redis.Client) {
 
 	RegisterAuthRouter(app, db, rdb)
 	RegisterProfileRouter(app, db, rdb)
+	RegisterPostRouter(app, db, rdb)
+	RegisterFollowRouter(app, db, rdb)
 }
